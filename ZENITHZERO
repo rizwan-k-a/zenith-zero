@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -e
+
+echo ""
+echo "╔══════════════════════════════════════════════════════╗"
+echo "║          ZENITH ZERO — Identity Intelligence          ║"
+echo "║        Bharat Secure Bank · Enterprise IAM            ║"
+echo "╚══════════════════════════════════════════════════════╝"
+echo ""
+
+# Check Node.js
+if ! command -v node &> /dev/null; then
+  echo "[ERROR] Node.js not found. Please install Node.js 18+ from https://nodejs.org"
+  exit 1
+fi
+NODE_VER=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
+if [ "$NODE_VER" -lt 18 ]; then
+  echo "[ERROR] Node.js 18+ required. Found: $(node --version)"
+  exit 1
+fi
+echo "[OK] Node.js $(node --version) detected"
+
+# Install frontend dependencies
+echo ""
+echo "[→] Installing frontend dependencies..."
+npm install --silent
+echo "[OK] Dependencies ready"
+
+# Verify .env exists
+if [ ! -f ".env" ]; then
+  echo "[ERROR] .env file missing. This file should be in the project root."
+  exit 1
+fi
+echo "[OK] Environment configuration found"
+
+# Check Supabase connection
+echo ""
+echo "[→] Verifying Supabase connection..."
+SUPABASE_URL=$(grep VITE_SUPABASE_URL .env | cut -d'=' -f2)
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SUPABASE_URL}/rest/v1/" \
+  -H "apikey: $(grep VITE_SUPABASE_ANON_KEY .env | cut -d'=' -f2)" 2>/dev/null || echo "000")
+if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "400" ]; then
+  echo "[OK] Supabase connected"
+else
+  echo "[WARN] Supabase ping returned ${HTTP_STATUS} — app may still work"
+fi
+
+# Start the dev server
+echo ""
+echo "[→] Starting Zenith Zero..."
+echo ""
+echo "  URL: http://localhost:5173"
+echo ""
+echo "  Demo Credentials:"
+echo "    Admin     → admin@bharatsecurebank.in / SecureBank@123"
+echo "    Analyst   → analyst@bharatsecurebank.in / SecureBank@123"
+echo "    Auditor   → auditor@bharatsecurebank.in / SecureBank@123"
+echo ""
+echo "  Press Ctrl+C to stop"
+echo ""
+
+# Open browser after a short delay
+(sleep 3 && (open http://localhost:5173 2>/dev/null || xdg-open http://localhost:5173 2>/dev/null || echo "[INFO] Open http://localhost:5173 in your browser")) &
+
+npm run dev
